@@ -1,0 +1,19 @@
+{
+  "name": "ResQra — Flood Emergency Help",
+  "short_name": "ResQra",
+  "description": "Request rescue, track your request, and find safe shelters during floods.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
