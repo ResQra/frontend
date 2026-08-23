@@ -82,6 +82,15 @@ button, input, select, textarea { font: inherit; }
   color: #0f172a !important;
 }
 
+.admin-console .action-button,
+.admin-console .action-button svg {
+  color: #ffffff !important;
+}
+
+.admin-console .action-button:disabled {
+  color: #64748b !important;
+}
+
 .admin-console .leaflet-container {
   background: #f1f5f9;
 }

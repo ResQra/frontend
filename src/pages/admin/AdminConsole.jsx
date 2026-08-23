@@ -27,6 +27,7 @@ const VIEWS = [
   ['assistant', 'Assistant', Bot],
 ]
 const STATUS_FLOW = ['VERIFIED', 'PRIORITIZED', 'ASSIGNED', 'IN_PROGRESS', 'RESCUED', 'RESOLVED']
+const CLOSED_STATUSES = new Set(['RESCUED', 'RESOLVED'])
 const TEAM_STATUSES = ['AVAILABLE', 'ON_MISSION', 'RETURNING', 'OFFLINE']
 
 const emptyTeam = {
@@ -137,7 +138,10 @@ export default function AdminConsole() {
       setMapData(mapRes)
       setTeams(teamsRes.teams || [])
       setReports(reportsRes.reports || [])
-      setSelectedId((current) => current || boardRes.incidents?.[0]?.id || null)
+      setSelectedId((current) => {
+        const incidents = boardRes.incidents || []
+        return incidents.some((item) => item.id === current) ? current : incidents[0]?.id || null
+      })
     } catch (err) {
       setError(err.message)
     }
@@ -152,6 +156,18 @@ export default function AdminConsole() {
   const selected = useMemo(
     () => board.find((item) => item.id === selectedId) || board[0] || null,
     [board, selectedId]
+  )
+  const visibleIncidents = useMemo(
+    () => board.filter((item) => !CLOSED_STATUSES.has(item.status)),
+    [board]
+  )
+  const mapLayers = useMemo(
+    () => ({
+      ...mapData,
+      incidents: visibleIncidents,
+      areas: visibleIncidents.length > 0 ? mapData.areas || [] : [],
+    }),
+    [mapData, visibleIncidents]
   )
   const recommendedTeam = selected?.recommendation?.team_id
     ? teams.find((team) => team.id === selected.recommendation.team_id)
@@ -280,8 +296,7 @@ export default function AdminConsole() {
             <Panel title="Live Map" icon={MapPin}>
               <div className="h-[620px]">
                 <MapView
-                  {...mapData}
-                  incidents={board.length ? board : mapData.incidents}
+                  {...mapLayers}
                   height="100%"
                   onIncidentSelect={(incident) => setSelectedId(incident.id)}
                 />
@@ -316,7 +331,7 @@ export default function AdminConsole() {
                 </div>
                 <Input placeholder="Base / current location label" value={teamForm.label} onChange={(e) => setTeamForm({ ...teamForm, label: e.target.value })} />
                 <TextArea rows={3} placeholder="Notes" value={teamForm.notes} onChange={(e) => setTeamForm({ ...teamForm, notes: e.target.value })} />
-                <button className="w-full rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-slate-950" disabled={busy === 'team-create'}>
+                <button className="action-button w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white" disabled={busy === 'team-create'}>
                   Add team
                 </button>
               </form>
@@ -356,7 +371,7 @@ export default function AdminConsole() {
           <div className="grid gap-4 xl:grid-cols-[minmax(520px,1fr)_420px]">
             <Panel title="People Map" icon={Users}>
               <div className="h-[620px]">
-                <MapView {...mapData} incidents={board} height="100%" onIncidentSelect={(incident) => setSelectedId(incident.id)} />
+                <MapView {...mapLayers} height="100%" onIncidentSelect={(incident) => setSelectedId(incident.id)} />
               </div>
             </Panel>
             <Panel title="Resident Signals" icon={ListChecks}>
@@ -398,7 +413,7 @@ export default function AdminConsole() {
                 </select>
                 <TextArea required rows={5} placeholder="Resident-facing update" value={report.body} onChange={(e) => setReport({ ...report, body: e.target.value })} />
                 <Input placeholder="Area affected" value={report.area_text} onChange={(e) => setReport({ ...report, area_text: e.target.value })} />
-                <button className="w-full rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-950" disabled={busy === 'report'}>Publish advisory</button>
+                <button className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50" disabled={busy === 'report'}>Publish advisory</button>
               </form>
             </Panel>
             <Panel title="Published Advisories" icon={Activity}>
@@ -431,7 +446,7 @@ export default function AdminConsole() {
               </div>
               <form onSubmit={sendAssistant} className="flex gap-2 border-t border-slate-800 p-3">
                 <Input value={assistantInput} onChange={(e) => setAssistantInput(e.target.value)} placeholder="Ask ops assistant" className="min-w-0 flex-1" />
-                <button className="grid size-10 place-items-center rounded-lg bg-sky-500 text-white" disabled={busy === 'assistant'} aria-label="Send">
+                <button className="action-button grid size-10 place-items-center rounded-lg bg-sky-500 text-white" disabled={busy === 'assistant'} aria-label="Send">
                   <Send className="size-4" />
                 </button>
               </form>
@@ -476,6 +491,7 @@ function QueuePanel({ board, selected, onSelect }) {
 }
 
 function DecisionPanel({ selected, recommendedTeam, busy, onStatus, onAssign }) {
+  const actionDisabled = Boolean(busy)
   return (
     <Panel title="Decision Panel" icon={CheckCircle2}>
       {selected ? (
@@ -506,8 +522,22 @@ function DecisionPanel({ selected, recommendedTeam, busy, onStatus, onAssign }) 
             <select value={selected.status} onChange={(e) => onStatus(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
               {STATUS_FLOW.map((status) => <option key={status}>{status}</option>)}
             </select>
-            <button disabled={!recommendedTeam || busy} onClick={onAssign} className="rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
+            <button disabled={!recommendedTeam || actionDisabled} onClick={onAssign} className="action-button rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">
               Assign best team
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button disabled={actionDisabled} onClick={() => onStatus('VERIFIED')} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+              Verify
+            </button>
+            <button disabled={actionDisabled} onClick={() => onStatus('PRIORITIZED')} className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-50">
+              Prioritize
+            </button>
+            <button disabled={actionDisabled} onClick={() => onStatus('IN_PROGRESS')} className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-100 disabled:opacity-50">
+              Mark in progress
+            </button>
+            <button disabled={actionDisabled} onClick={() => onStatus('RESOLVED')} className="action-button rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500">
+              Resolve alert
             </button>
           </div>
         </div>
