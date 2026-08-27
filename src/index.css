@@ -1,11 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 }
 
 html {
   font-family: var(--font-sans);
+  background-color: #000000;
+  color: #ffffff;
 }
 
 #root {
@@ -15,98 +18,106 @@ html {
 
 body {
   margin: 0;
-  background: #070d18;
+  background-color: #000000;
+  color: #f4f4f5;
 }
 
 button, input, select, textarea { font: inherit; }
 
-/* Make Leaflet feel native inside the command centre. */
-.leaflet-container { background: #0b1220; font-family: var(--font-sans); }
-.leaflet-control-zoom a { background: #0f172a !important; color: #cbd5e1 !important; border-color: #334155 !important; }
-.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #0f172a; color: #cbd5e1; }
-.leaflet-popup-content { font-size: 12px; line-height: 1.55; }
-.leaflet-popup-close-button { color: #94a3b8 !important; }
+/* Custom Monochrome Scrollbars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
-/* White operations theme, scoped to the coordinator console. */
-.admin-console {
-  background: #f8fafc;
-  color: #0f172a;
+/* Leaflet Map Noir / Monochrome Styling */
+.leaflet-container {
+  background: #09090b !important;
+  font-family: var(--font-sans);
+  z-index: 10;
 }
 
-.admin-console header,
-.admin-console section,
-.admin-console [class*="bg-slate-950"],
-.admin-console [class*="bg-slate-900"] {
-  background-color: #ffffff !important;
+/* Free dark map tiles — CSS invert on standard OpenStreetMap */
+.dark-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.2);
 }
 
-.admin-console [class*="bg-slate-900/"],
-.admin-console [class*="bg-slate-800"] {
-  background-color: #f8fafc !important;
+/* Ensure Leaflet zoom controls stay cleanly in top-left without overlapping anything */
+.leaflet-top.leaflet-left {
+  top: 12px;
+  left: 12px;
 }
 
-.admin-console [class*="border-slate-800"],
-.admin-console [class*="border-slate-700"] {
-  border-color: #e2e8f0 !important;
+.leaflet-control-zoom {
+  border: 1px solid #27272a !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
 }
 
-.admin-console [class*="text-white"],
-.admin-console [class*="text-slate-100"],
-.admin-console [class*="text-slate-200"],
-.admin-console [class*="text-slate-300"],
-.admin-console [class*="text-slate-950"] {
-  color: #0f172a !important;
+.leaflet-control-zoom a {
+  background: #09090b !important;
+  color: #f4f4f5 !important;
+  border-color: #27272a !important;
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  font-size: 14px !important;
+  transition: all 0.15s ease;
 }
 
-.admin-console [class*="text-slate-400"],
-.admin-console [class*="text-slate-500"],
-.admin-console [class*="text-slate-600"] {
-  color: #64748b !important;
-}
-
-.admin-console input,
-.admin-console textarea,
-.admin-console select {
-  background: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
-
-.admin-console input::placeholder,
-.admin-console textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-.admin-console nav button:not(.bg-slate-100):hover {
-  background: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-
-.admin-console .action-button,
-.admin-console .action-button svg {
+.leaflet-control-zoom a:hover {
+  background: #27272a !important;
   color: #ffffff !important;
 }
 
-.admin-console .action-button:disabled {
-  color: #64748b !important;
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #09090b !important;
+  color: #f4f4f5 !important;
+  border: 1px solid #27272a !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important;
 }
 
-.admin-console .leaflet-container {
-  background: #f1f5f9;
+.leaflet-popup-content {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 8px 12px;
 }
 
-.admin-console .leaflet-control-zoom a {
-  background: #ffffff !important;
-  color: #334155 !important;
-  border-color: #cbd5e1 !important;
+.leaflet-popup-close-button {
+  color: #71717a !important;
+  top: 6px !important;
+  right: 6px !important;
 }
 
-.admin-console .leaflet-popup-content-wrapper,
-.admin-console .leaflet-popup-tip {
-  background: #ffffff;
-  color: #0f172a;
+.leaflet-popup-close-button:hover {
+  color: #ffffff !important;
 }
 
-.admin-console .leaflet-popup-close-button {
-  color: #64748b !important;
+/* DisasterConnect Marker & Alert Animations */
+@keyframes pulse-critical {
+  0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+  50% { transform: scale(1.15); opacity: 0.9; box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
+  100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
 }
+
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.incident-marker-critical {
+  animation: pulse-critical 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+

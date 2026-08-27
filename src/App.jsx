@@ -9,6 +9,9 @@ import Chat from './pages/Chat.jsx'
 import Guides from './pages/Guides.jsx'
 import GuideDetail from './pages/GuideDetail.jsx'
 import AdminConsole from './pages/admin/AdminConsole.jsx'
+import LandingPage from './pages/LandingPage.jsx'
+import JudgeDemoSandbox from './pages/JudgeDemoSandbox.jsx'
+import { Toaster } from './components/ui/sonner.jsx'
 
 function BackButton() {
   return (
@@ -33,7 +36,7 @@ function Shell({ children, padded = true }) {
     .toUpperCase()
 
   const navItems = [
-    ['/', 'Home', HomeIcon],
+    ['/portal', 'Home', HomeIcon],
     ['/request', 'SOS', Siren],
     ['/track', 'Status', MapPin],
     ['/guides', 'Guides', BookOpen],
@@ -100,83 +103,88 @@ function RequireAuth({ children }) {
 function RequireRole({ role, children }) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== role) return <Navigate to="/" replace />
+  if (user.role !== role) return <Navigate to="/portal" replace />
   return children
 }
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <Shell>
-              <Home />
-            </Shell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/request"
-        element={
-          <RequireAuth>
-            <Shell>
-              <RequestHelp />
-            </Shell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/track"
-        element={
-          <RequireAuth>
-            <Shell>
-              <TrackStatus />
-            </Shell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/guides"
-        element={
-          <RequireAuth>
-            <Shell>
-              <Guides />
-            </Shell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/guides/:id"
-        element={
-          <RequireAuth>
-            <Shell>
-              <GuideDetail />
-            </Shell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          <RequireAuth>
-            <Shell padded={false}>
-              <Chat />
-            </Shell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <RequireRole role="coordinator">
-            <AdminConsole />
-          </RequireRole>
-        }
-      />
-    </Routes>
+    <>
+      <Toaster />
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/portal"
+          element={
+            <RequireAuth>
+              <Shell>
+                <Home />
+              </Shell>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/request"
+          element={
+            <RequireAuth>
+              <Shell>
+                <RequestHelp />
+              </Shell>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/track"
+          element={
+            <RequireAuth>
+              <Shell>
+                <TrackStatus />
+              </Shell>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/guides"
+          element={
+            <RequireAuth>
+              <Shell>
+                <Guides />
+              </Shell>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/guides/:id"
+          element={
+            <RequireAuth>
+              <Shell>
+                <GuideDetail />
+              </Shell>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <RequireAuth>
+              <Shell padded={false}>
+                <Chat />
+              </Shell>
+            </RequireAuth>
+          }
+        />
+        <Route path="/demo" element={<JudgeDemoSandbox />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireRole role="coordinator">
+              <AdminConsole />
+            </RequireRole>
+          }
+        />
+      </Routes>
+    </>
   )
 }
 
