@@ -57,6 +57,34 @@ async function request(path, { method = 'GET', body } = {}) {
   return data
 }
 
+async function requestForm(path, formData) {
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  })
+  let data = null
+  try {
+    data = await res.json()
+  } catch {
+    /* non-JSON response */
+  }
+  if (res.status === 401 && !path.includes('/auth/')) {
+    clearSession()
+    window.location.href = '/login'
+    throw new Error('Session expired — please sign in again')
+  }
+  if (!res.ok) {
+    const err = new Error(data?.detail || `Request failed (${res.status})`)
+    err.status = res.status
+    throw err
+  }
+  return data
+}
+
 export const api = {
   requestOtp: (phone, name) =>
     request('/api/auth/otp/request', { method: 'POST', body: { phone, name } }),
@@ -99,13 +127,41 @@ export const api = {
   decidePendingAction: (id, body) =>
     request(`/api/ops/pending-actions/${id}/decision`, { method: 'POST', body }),
   activity: () => request('/api/ops/activity'),
-  opsAssistant: (message, history = []) =>
-    request('/api/ops/assistant', { method: 'POST', body: { message, history } }),
+  opsAssistant: (message, history = [], area_context = null, session_id = null) =>
+    request('/api/ops/assistant', { method: 'POST', body: { message, history, area_context, session_id } }),
+  listChatSessions: () => request('/api/ops/assistant/sessions'),
+  createChatSession: (body = {}) =>
+    request('/api/ops/assistant/sessions', { method: 'POST', body }),
+  chatSessionHistory: (id) => request(`/api/ops/assistant/sessions/${encodeURIComponent(id)}/history`),
+  renameChatSession: (id, title) =>
+    request(`/api/ops/assistant/sessions/${encodeURIComponent(id)}`, { method: 'PATCH', body: { title } }),
+  deleteChatSession: (id) =>
+    request(`/api/ops/assistant/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  assistantImage: (file, { message = '', session_id = null, area = null } = {}) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('message', message)
+    if (session_id) fd.append('session_id', session_id)
+    if (area) fd.append('area', area)
+    return requestForm('/api/ops/assistant/image', fd)
+  },
+  assistantVoice: (blob, { session_id = null, area = null, tts = true } = {}) => {
+    const fd = new FormData()
+    fd.append('file', blob, 'voice-note.webm')
+    if (session_id) fd.append('session_id', session_id)
+    if (area) fd.append('area', area)
+    fd.append('tts', String(tts))
+    return requestForm('/api/ops/assistant/voice', fd)
+  },
   setIncidentStatus: (id, status) =>
     request(`/api/ops/incidents/${id}/status`, { method: 'PATCH', body: { status } }),
   assignTeam: (id, teamId) =>
     request(`/api/ops/incidents/${id}/assign`, { method: 'POST', body: { team_id: teamId } }),
   recommendTeam: (id) => request(`/api/ops/incidents/${id}/recommend`, { method: 'POST' }),
+  routePreview: (incidentId, teamId) =>
+    request(`/api/agents/route-preview?incident_id=${encodeURIComponent(incidentId)}${teamId ? `&team_id=${encodeURIComponent(teamId)}` : ''}`),
+  debate: (incidentId) =>
+    request('/api/agents/debate', { method: 'POST', body: { incident_id: incidentId } }),
   setTeamStatus: (id, status) =>
     request(`/api/ops/teams/${id}/status`, { method: 'PATCH', body: { status } }),
   updateTeamLocation: (id, body) =>
@@ -125,27 +181,17 @@ export const api = {
   agentsStatus: () => request('/api/ops/agents/status'),
   triggerAgentSweep: () => request('/api/ops/agents/sweep', { method: 'POST' }),
 
-  // Global Natural Disaster Situation Room Feeds (World Monitor)
-  globalDisasters: (params = '') => request(`/api/disasters/global-events${params ? '?' + params : ''}`),
-  disasterLiveIntel: () => request('/api/disasters/live-intel'),
-  riverDischarge: (lat, lng) => request(`/api/disasters/river-discharge?lat=${lat}&lng=${lng}`),
-
-  // Area config
+  // Phase 2 map adapter + resident safest-route hook
+  mapGev: (bbox = null, area = 'rautahat') => {
+    const q = bbox ? `?sw_lat=${bbox[0][0]}&sw_lng=${bbox[0][1]}&ne_lat=${bbox[1][0]}&ne_lng=${bbox[1][1]}&area=${area}` : `?area=${area}`
+    return request(`/api/map/gev${q}`)
+  },
+  safestRoute: (body) => request('/api/public/safest-route', { method: 'POST', body }),
   areaPresets: () => request('/api/area/presets'),
   areaConfig: (area) => request(`/api/area/config?area=${encodeURIComponent(area)}`),
   areaRoads: (swLat, swLng, neLat, neLng) =>
     request(`/api/area/roads?sw_lat=${swLat}&sw_lng=${swLng}&ne_lat=${neLat}&ne_lng=${neLng}`),
 
-  // ResQra-Bench & ReAct Agentic Engine
-  benchmarkChallenges: () => request('/api/ops/benchmark/challenges'),
-  runBenchmark: (challengeId = null) =>
-    request('/api/ops/benchmark/run', {
-      method: 'POST',
-      body: challengeId ? { challenge_id: challengeId } : {},
-    }),
-  agenticReason: (dilemma) =>
-    request('/api/ops/agentic/reason', { method: 'POST', body: dilemma }),
-  simulateCustomDisaster: (params) =>
-    request('/api/ops/demo/simulate-custom', { method: 'POST', body: params }),
+  // Simulation reset (arch §66 — unified POST /simulation/* lands in Phase 9)
   demoReset: () => request('/api/ops/demo/reset', { method: 'POST' }),
 }

@@ -21,6 +21,7 @@ function levelToIntensity(level) {
 export default function HeatmapLayer({ sensorEvents = [], incidents = [], visible = true }) {
   const map = useMap()
   const layerRef = useRef(null)
+  const sigRef = useRef('')
 
   useEffect(() => {
     if (!visible) {
@@ -28,6 +29,7 @@ export default function HeatmapLayer({ sensorEvents = [], incidents = [], visibl
         map.removeLayer(layerRef.current)
         layerRef.current = null
       }
+      sigRef.current = ''
       return
     }
 
@@ -35,18 +37,18 @@ export default function HeatmapLayer({ sensorEvents = [], incidents = [], visibl
 
     // Sensor events as heatmap points
     for (const event of sensorEvents) {
-      const lat = event.payload?.lat
-      const lng = event.payload?.lng
-      if (lat == null || lng == null) continue
+      const lat = Number(event.payload?.lat)
+      const lng = Number(event.payload?.lng)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
       const intensity = levelToIntensity(event.payload?.level)
       points.push([lat, lng, intensity])
     }
 
     // Incidents as heatmap points (lower intensity spread)
     for (const inc of incidents) {
-      const lat = inc.location?.lat
-      const lng = inc.location?.lng
-      if (lat == null || lng == null) continue
+      const lat = Number(inc.location?.lat)
+      const lng = Number(inc.location?.lng)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
       const score = inc.priority?.score ?? 3
       points.push([lat, lng, Math.min(1.0, score / 10)])
     }
@@ -56,7 +58,18 @@ export default function HeatmapLayer({ sensorEvents = [], incidents = [], visibl
         map.removeLayer(layerRef.current)
         layerRef.current = null
       }
+      sigRef.current = ''
       return
+    }
+
+    // Skip rebuild when the underlying points are unchanged (polling
+    // creates fresh arrays every cycle — without this the heat flashes).
+    const sig = JSON.stringify(points)
+    if (sig === sigRef.current && layerRef.current) return
+    sigRef.current = sig
+    if (layerRef.current) {
+      map.removeLayer(layerRef.current)
+      layerRef.current = null
     }
 
     try {

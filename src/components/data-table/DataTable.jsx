@@ -50,16 +50,16 @@ export function DataTable({
   return (
     <div className={cn('space-y-3 font-sans', className)}>
       {ToolbarComponent && <ToolbarComponent table={table} filterKey={filterKey} />}
-      <div className="rounded-xl border border-zinc-800 bg-[#09090b] overflow-hidden shadow-xl">
+      <div className="rounded-xl border border-slate-200 bg-slate-100 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-zinc-800 bg-black">
+            <thead className="border-b border-slate-200 bg-slate-100">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-400"
+                      className="px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500"
                     >
                       {header.isPlaceholder
                         ? null
@@ -72,7 +72,7 @@ export function DataTable({
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-slate-200/60">
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <tr
@@ -80,12 +80,12 @@ export function DataTable({
                     onClick={() => onRowClick && onRowClick(row.original)}
                     data-state={row.getIsSelected() && 'selected'}
                     className={cn(
-                      'transition hover:bg-zinc-900/50',
+                      'transition hover:bg-slate-100/50',
                       onRowClick && 'cursor-pointer'
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 text-zinc-200">
+                      <td key={cell.id} className="px-4 py-3 text-slate-700">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -95,7 +95,7 @@ export function DataTable({
                 <tr>
                   <td
                     colSpan={columns.length}
-                    className="h-24 text-center font-mono text-xs text-zinc-500"
+                    className="h-24 text-center font-mono text-xs text-slate-500"
                   >
                     No records found.
                   </td>

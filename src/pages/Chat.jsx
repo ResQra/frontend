@@ -9,6 +9,7 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const bottomRef = useRef(null)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     api
@@ -43,7 +44,7 @@ export default function Chat() {
         ...prev,
         {
           role: 'agent',
-          content: res.reply,
+          content: typeof res === 'string' ? res : (res?.reply ?? '(no reply)'),
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ])
@@ -63,6 +64,7 @@ export default function Chat() {
 
   function handleQuickChip(chipText) {
     setInput(chipText)
+    inputRef.current?.focus()
   }
 
   return (
@@ -76,9 +78,9 @@ export default function Chat() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-bold tracking-tight text-slate-900">Rautahat Emergency Copilot</h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.2 text-[10px] font-bold text-red-700">
-                <span className="size-1.5 rounded-full bg-red-600 animate-ping" />
-                DEFCON 1
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                <span className="size-1.5 rounded-full bg-amber-500" />
+                ACTIVE FLOOD RESPONSE
               </span>
             </div>
             <p className="text-[11px] text-slate-500 font-medium">
@@ -135,10 +137,10 @@ export default function Chat() {
             className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div
-              className={`max-w-[88%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
+              className={`rise max-w-[88%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                 m.role === 'user'
-                  ? 'rounded-br-xs bg-slate-900 text-white font-medium'
-                  : 'rounded-bl-xs border border-slate-200 bg-white text-slate-800'
+                  ? 'bg-gradient-to-br from-slate-800 to-slate-950 text-white font-medium rounded-br-md'
+                  : 'border border-slate-200 bg-white text-slate-700 rounded-bl-md'
               }`}
             >
               {m.role === 'agent' && (
@@ -191,9 +193,10 @@ export default function Chat() {
         <form onSubmit={send} className="flex items-center gap-2">
           <div className="relative flex-1">
             <input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type message in Nepali, Maithili, English, Hindi..."
+              placeholder="Type message in Nepali, Maithili, English, Hindi... (chips fill — tap Send)"
               className="w-full rounded-full border border-slate-300 bg-white py-3 pl-4 pr-10 text-sm shadow-xs transition focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 placeholder:text-slate-400"
             />
             {input && (

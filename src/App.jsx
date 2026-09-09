@@ -9,8 +9,6 @@ import Chat from './pages/Chat.jsx'
 import Guides from './pages/Guides.jsx'
 import GuideDetail from './pages/GuideDetail.jsx'
 import AdminConsole from './pages/admin/AdminConsole.jsx'
-import LandingPage from './pages/LandingPage.jsx'
-import JudgeDemoSandbox from './pages/JudgeDemoSandbox.jsx'
 import { Toaster } from './components/ui/sonner.jsx'
 
 function BackButton() {
@@ -37,21 +35,24 @@ function Shell({ children, padded = true }) {
 
   const navItems = [
     ['/portal', 'Home', HomeIcon],
-    ['/request', 'SOS', Siren],
     ['/track', 'Status', MapPin],
+    ['/request', 'SOS', Siren],
     ['/guides', 'Guides', BookOpen],
     ['/chat', 'Chat', MessageSquare],
   ]
 
   return (
-    <div className="flex min-h-svh flex-col bg-slate-50">
-      <header className="sticky top-0 z-[500] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div className="app-bg flex min-h-svh flex-col">
+      <header className="sticky top-0 z-[500] border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-slate-900 text-white">
+            <span className="brand-mark grid size-8 place-items-center rounded-xl text-white shadow-sm">
               <LifeBuoy className="size-[18px]" />
             </span>
-            <span className="text-[17px] font-bold tracking-tight text-slate-900">ResQra</span>
+            <span className="text-[17px] font-extrabold tracking-tight text-slate-900">ResQra</span>
+            <span className="hidden rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 sm:inline">
+              FLOOD RESPONSE
+            </span>
           </Link>
           {user && (
             <div className="flex items-center gap-2.5">
@@ -71,19 +72,38 @@ function Shell({ children, padded = true }) {
 
       <main className={`mx-auto w-full max-w-3xl flex-1 ${padded ? 'px-4 py-5' : ''}`}>{children}</main>
 
-      <nav className="sticky bottom-0 z-[500] border-t border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto grid max-w-3xl grid-cols-5">
+      <nav className="sticky bottom-0 z-[500] border-t border-slate-200/80 bg-white/90 backdrop-blur-md">
+        <div className="mx-auto grid max-w-3xl grid-cols-5 px-2 pb-[env(safe-area-inset-bottom)]">
           {navItems.map(([to, label, Icon]) => {
             const active = to === '/' ? pathname === '/' : pathname.startsWith(to)
+            if (to === '/request') {
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  aria-label="Emergency SOS"
+                  className="relative flex flex-col items-center"
+                >
+                  <span className={`brand-mark-sos -mt-6 grid size-14 place-items-center rounded-full border-4 border-slate-50 text-white transition active:scale-95 ${active ? 'ring-4 ring-red-100' : ''}`}>
+                    <Icon className="size-6" strokeWidth={2.4} />
+                  </span>
+                  <span className={`pb-2 pt-1 text-[11px] font-bold ${active ? 'text-red-600' : 'text-slate-400'}`}>
+                    {label}
+                  </span>
+                </Link>
+              )
+            }
             return (
               <Link
                 key={to}
                 to={to}
-                className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition ${
-                  active ? 'text-sky-700' : 'text-slate-400 hover:text-slate-600'
+                className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition ${
+                  active ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
-                <Icon className={`size-[21px] ${to === '/request' && active ? 'text-red-600' : ''}`} strokeWidth={active ? 2.2 : 1.8} />
+                <span className={`grid size-9 place-items-center rounded-xl transition ${active ? 'bg-slate-900 text-white shadow-md' : ''}`}>
+                  <Icon className="size-[21px]" strokeWidth={active ? 2.2 : 1.8} />
+                </span>
                 {label}
               </Link>
             )
@@ -103,7 +123,7 @@ function RequireAuth({ children }) {
 function RequireRole({ role, children }) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== role) return <Navigate to="/portal" replace />
+  if ((user.role || '').toLowerCase() !== role.toLowerCase()) return <Navigate to="/portal" replace />
   return children
 }
 
@@ -174,7 +194,6 @@ export default function App() {
             </RequireAuth>
           }
         />
-        <Route path="/demo" element={<JudgeDemoSandbox />} />
         <Route
           path="/admin"
           element={
@@ -183,6 +202,7 @@ export default function App() {
             </RequireRole>
           }
         />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   )

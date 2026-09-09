@@ -46,10 +46,21 @@ export default function RequestHelp() {
     e.preventDefault()
     setBusy(true)
     setError('')
+    const peopleCount = people === '' ? null : Number(people)
+    if (peopleCount !== null && (!Number.isFinite(peopleCount) || peopleCount < 1 || peopleCount > 500)) {
+      setError('Tell us how many people need help (1–500).')
+      setBusy(false)
+      return
+    }
+    if (!gps && !locationText.trim()) {
+      setError('Add a landmark or tap Use GPS — rescuers need a location to reach you.')
+      setBusy(false)
+      return
+    }
     try {
       const item = await api.createIncident({
         raw_text: rawText.trim(),
-        people: people ? Number(people) : null,
+        people: peopleCount,
         vulnerabilities: vulns,
         urgency,
         water_rising: waterRising,
@@ -64,6 +75,19 @@ export default function RequestHelp() {
     }
   }
 
+  function resetForm() {
+    setCreated(null)
+    setRawText('')
+    setPeople('')
+    setVulns([])
+    setUrgency('HIGH')
+    setWaterRising(true)
+    setLocationText('')
+    setGps(null)
+    setGpsState('idle')
+    setError('')
+  }
+
   if (created) {
     return (
       <div className="flex flex-col items-center pt-10 text-center">
@@ -74,18 +98,24 @@ export default function RequestHelp() {
         <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600">
           Your request ID is{' '}
           <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">{created.id}</code>.
-          It has entered the rescue coordination queue. Keep your phone with you and stay where you are
-          if it is safe.
+          It has entered the rescue coordination queue and is live on the coordinator map. Keep your phone
+          with you and stay where you are if it is safe.
         </p>
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
             to="/track"
             className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             Track my request
           </Link>
+          <button
+            onClick={resetForm}
+            className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            File another report
+          </button>
           <Link
-            to="/"
+            to="/portal"
             className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Home
@@ -121,29 +151,44 @@ export default function RequestHelp() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={label}>People with you</label>
-          <input
-            type="number" min="1"
-            value={people}
-            onChange={(e) => setPeople(e.target.value)}
-            placeholder="e.g. 6"
-            className={input}
-          />
-        </div>
-        <div>
-          <label className={label}>Urgency</label>
-          <select
-            value={urgency}
-            onChange={(e) => setUrgency(e.target.value)}
-            className={`${input} bg-white`}
-          >
-            {URGENCY.map(([v, t, d]) => (
-              <option key={v} value={v}>{t} — {d}</option>
-            ))}
-          </select>
-        </div>
+      <div>
+        <label className={label}>People with you</label>
+        <input
+          type="number" min="1"
+          value={people}
+          onChange={(e) => setPeople(e.target.value)}
+          placeholder="e.g. 6"
+          className={input}
+        />
+      </div>
+
+      <div>
+        <span className={label} id="urgency-label">How urgent is it?</span>
+          <div role="radiogroup" aria-labelledby="urgency-label" className="grid grid-cols-3 gap-2">
+            {URGENCY.map(([v, t, d]) => {
+              const on = urgency === v
+              const accent = v === 'HIGH'
+                ? 'border-red-500 bg-red-50 text-red-800 ring-red-200'
+                : v === 'MEDIUM'
+                  ? 'border-amber-400 bg-amber-50 text-amber-900 ring-amber-200'
+                  : 'border-emerald-400 bg-emerald-50 text-emerald-900 ring-emerald-200'
+              return (
+                <button
+                  type="button"
+                  key={v}
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setUrgency(v)}
+                  className={`rounded-2xl border-2 px-2 py-2.5 text-center transition active:scale-95 ${
+                    on ? `${accent} shadow-sm ring-2` : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="block text-[13px] font-extrabold">{t}</span>
+                  <span className={`mt-0.5 block text-[10px] leading-tight ${on ? '' : 'text-slate-400'}`}>{d}</span>
+                </button>
+              )
+            })}
+          </div>
       </div>
 
       <div>
@@ -206,24 +251,30 @@ export default function RequestHelp() {
         )}
       </div>
 
-      <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={waterRising}
+        aria-label="Water level is rising"
+        onClick={() => setWaterRising((v) => !v)}
+        className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm"
+      >
         <span className="text-sm font-medium text-slate-800">Water level is rising</span>
         <span
-          onClick={(e) => { e.preventDefault(); setWaterRising((v) => !v) }}
           className={`relative h-6 w-11 rounded-full transition ${waterRising ? 'bg-sky-600' : 'bg-slate-300'}`}
         >
           <span
             className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all ${waterRising ? 'left-[22px]' : 'left-0.5'}`}
           />
         </span>
-      </label>
+      </button>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>}
 
       <button
         type="submit"
         disabled={busy}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3.5 text-[15px] font-bold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
+        className="sticky bottom-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 py-3.5 text-[15px] font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(220,38,38,0.55)] transition hover:brightness-110 disabled:opacity-60"
       >
         <Siren className="size-5" />
         {busy ? 'Submitting…' : 'SEND EMERGENCY REQUEST'}

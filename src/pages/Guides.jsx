@@ -19,10 +19,13 @@ export default function Guides() {
   const [guides, setGuides] = useState(null)
 
   useEffect(() => {
+    setGuides(null)
+    const ctrl = new AbortController()
     api
       .guides(category !== 'all' ? category : undefined)
-      .then((data) => setGuides(data.guides || []))
-      .catch(() => setGuides([]))
+      .then((data) => { if (!ctrl.signal.aborted) setGuides(data.guides || []) })
+      .catch(() => { if (!ctrl.signal.aborted) setGuides([]) })
+    return () => ctrl.abort()
   }, [category])
 
   const visible = (guides || []).filter((g) => language === 'all' || g.language === language)
@@ -80,11 +83,12 @@ export default function Guides() {
         />
       ) : (
         <div className="space-y-2.5">
-          {visible.map((g) => (
+          {visible.map((g, i) => (
             <Link
               key={g.id}
               to={`/guides/${g.id}`}
-              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-slate-300 hover:shadow"
+              style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
+              className="rise lift flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm hover:border-slate-300"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

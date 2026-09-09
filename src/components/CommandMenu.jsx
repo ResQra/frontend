@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
   Bot,
-  Cpu,
+  Eye,
   Layers,
   MapPin,
+  MessageSquare,
   Play,
   Radio,
   RefreshCw,
@@ -60,17 +61,26 @@ export function CommandMenu({
               onOpenChange(false)
             }}
           >
-            <Radio className="mr-2 size-4 text-zinc-400" />
+            <Radio className="mr-2 size-4 text-slate-500" />
             <span>Tactical Map Cockpit</span>
           </CommandItem>
           <CommandItem
             onSelect={() => {
-              onNavigateTab?.('agents')
+              onNavigateTab?.('godeyes')
               onOpenChange(false)
             }}
           >
-            <Cpu className="mr-2 size-4 text-zinc-400" />
-            <span>Agent Fleet Observability</span>
+            <Eye className="mr-2 size-4 text-slate-500" />
+            <span>God Eyes — Nepal Sector</span>
+          </CommandItem>
+          <CommandItem
+            onSelect={() => {
+              onNavigateTab?.('chat')
+              onOpenChange(false)
+            }}
+          >
+            <MessageSquare className="mr-2 size-4 text-slate-500" />
+            <span>AI Chat Sessions</span>
           </CommandItem>
           <CommandItem
             onSelect={() => {
@@ -78,17 +88,18 @@ export function CommandMenu({
               onOpenChange(false)
             }}
           >
-            <Ship className="mr-2 size-4 text-zinc-400" />
+            <Ship className="mr-2 size-4 text-slate-500" />
             <span>Rescue Fleet Directory</span>
           </CommandItem>
           <CommandItem
+            value="operational analytics kpis charts"
             onSelect={() => {
-              onNavigateTab?.('simulation')
+              onNavigateTab?.('kpis')
               onOpenChange(false)
             }}
           >
-            <Layers className="mr-2 size-4 text-zinc-400" />
-            <span>Simulation Studio & Sensor Spikes</span>
+            <Layers className="mr-2 size-4 text-slate-500" />
+            <span>Operational Analytics & KPIs</span>
           </CommandItem>
         </CommandGroup>
 
@@ -102,7 +113,7 @@ export function CommandMenu({
               onOpenChange(false)
             }}
           >
-            <Play className="mr-2 size-4 text-white" />
+            <Play className="mr-2 size-4 text-slate-900" />
             <span>Run MonitorAgent Background Sweep</span>
           </CommandItem>
           <CommandItem
@@ -111,7 +122,7 @@ export function CommandMenu({
               onOpenChange(false)
             }}
           >
-            <RefreshCw className="mr-2 size-4 text-zinc-400" />
+            <RefreshCw className="mr-2 size-4 text-slate-500" />
             <span>Recompute Geohash Density Clusters</span>
           </CommandItem>
         </CommandGroup>
@@ -119,20 +130,21 @@ export function CommandMenu({
         <CommandSeparator />
 
         {/* Incidents */}
-        <CommandGroup heading="Active Distress Incidents">
-          {incidents.slice(0, 8).map((inc) => (
+        <CommandGroup heading={`Active Distress Incidents (${incidents.length})`}>
+          {incidents.slice(0, 12).map((inc) => (
             <CommandItem
               key={inc.id}
+              value={`${inc.id} ${inc.raw_text || ''} ${inc.status || ''}`}
               onSelect={() => {
                 onSelectIncident?.(inc.id)
                 onOpenChange(false)
               }}
             >
-              <AlertTriangle className="mr-2 size-4 text-zinc-400" />
+              <AlertTriangle className="mr-2 size-4 text-slate-500" />
               <div className="flex flex-1 items-center justify-between">
-                <span className="font-mono font-bold text-white">{inc.id}</span>
-                <span className="text-zinc-400 truncate max-w-[200px]">{inc.raw_text}</span>
-                <span className="ml-2 font-mono text-[10px] text-zinc-500">Score {inc.priority?.score ?? 0}</span>
+                <span className="font-mono font-bold text-slate-900">{inc.id}</span>
+                <span className="text-slate-500 truncate max-w-[200px]">{inc.raw_text}</span>
+                <span className="ml-2 font-mono text-[10px] text-slate-500">Score {inc.priority?.score ?? 0}</span>
               </div>
             </CommandItem>
           ))}
@@ -141,19 +153,20 @@ export function CommandMenu({
         <CommandSeparator />
 
         {/* Rescue Teams */}
-        <CommandGroup heading="Rescue Teams">
+        <CommandGroup heading={`Rescue Teams (${teams.length})`}>
           {teams.map((t) => (
             <CommandItem
               key={t.id}
+              value={`${t.id} ${t.name || ''} ${t.status || ''}`}
               onSelect={() => {
                 onSelectTeam?.(t.id)
                 onOpenChange(false)
               }}
             >
-              <Ship className="mr-2 size-4 text-zinc-400" />
+              <Ship className="mr-2 size-4 text-slate-500" />
               <div className="flex flex-1 items-center justify-between">
-                <span className="font-bold text-white">{t.name}</span>
-                <span className="font-mono text-[10px] text-zinc-400">{t.status} · Cap {t.capacity}</span>
+                <span className="font-bold text-slate-900">{t.name}</span>
+                <span className="font-mono text-[10px] text-slate-500">{t.status} · Cap {t.capacity}</span>
               </div>
             </CommandItem>
           ))}

@@ -1,12 +1,12 @@
 // Shown only when the backend has no database yet (503) so the resident
-// map can still demo. Mirrors backend/scripts/seed.py; delete when the DB
-// is live and trusted.
+// map can still demo. Rautahat District locations mirroring the backend
+// seed; delete when the DB is live and trusted.
 
 export const FALLBACK_SHELTERS = [
-  { id: 'shelter_1', name: 'Govt High School, Kankarbagh', location: { lat: 25.5812, lng: 85.1471 }, capacity: 400, current_occupancy: 112 },
-  { id: 'shelter_2', name: 'Miller High School, Raja Bazar', location: { lat: 25.6042, lng: 85.1301 }, capacity: 350, current_occupancy: 88 },
-  { id: 'shelter_3', name: 'Bihar Veterinary College Ground', location: { lat: 25.6112, lng: 85.1011 }, capacity: 600, current_occupancy: 240 },
-  { id: 'shelter_4', name: "Patna Women's College", location: { lat: 25.6012, lng: 85.1371 }, capacity: 300, current_occupancy: 95 },
-  { id: 'shelter_5', name: 'Moin-ul-Haq Stadium', location: { lat: 25.5932, lng: 85.1221 }, capacity: 800, current_occupancy: 410 },
-  { id: 'shelter_6', name: 'Danapur Cantonment Hall', location: { lat: 25.6292, lng: 85.0471 }, capacity: 250, current_occupancy: 61 },
+  { id: 'shelter_gaur_hospital', name: 'Gaur District Hospital & Trauma Center', location: { lat: 26.7640, lng: 85.2780 }, capacity: 160, current_occupancy: 51 },
+  { id: 'shelter_stadium', name: 'Rautahat District Sports Stadium Camp', location: { lat: 26.7680, lng: 85.2810 }, capacity: 3000, current_occupancy: 960 },
+  { id: 'shelter_juddha', name: 'Juddha Higher Secondary School Relief Camp', location: { lat: 26.7590, lng: 85.2720 }, capacity: 1800, current_occupancy: 576 },
+  { id: 'shelter_tikuliya', name: 'Tikuliya Ghat Community Relief Point', location: { lat: 26.7820, lng: 85.2420 }, capacity: 950, current_occupancy: 304 },
+  { id: 'shelter_garuda', name: 'Garuda Municipal Evacuation Complex', location: { lat: 26.9250, lng: 85.3120 }, capacity: 2200, current_occupancy: 704 },
+  { id: 'shelter_chandrapur', name: 'Chandranigahapur Community Hospital', location: { lat: 27.1250, lng: 85.3400 }, capacity: 300, current_occupancy: 96 },
 ]

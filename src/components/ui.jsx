@@ -1,9 +1,10 @@
 // Shared design primitives — one visual language across the resident app.
 
-export function Card({ className = '', children, onClick }) {
+export function Card({ className = '', children, onClick, style }) {
   return (
     <div
       onClick={onClick}
+      style={style}
       className={`rounded-xl border border-slate-200 bg-white shadow-sm ${onClick ? 'cursor-pointer transition hover:border-slate-300 hover:shadow' : ''} ${className}`}
     >
       {children}

@@ -19,6 +19,7 @@ const STEP_LABELS = {
 export default function TrackStatus() {
   const [incidents, setIncidents] = useState(null)
   const [error, setError] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
 
   async function refresh() {
     try {
@@ -30,9 +31,15 @@ export default function TrackStatus() {
     }
   }
 
+  async function manualRefresh() {
+    setRefreshing(true)
+    await refresh()
+    setRefreshing(false)
+  }
+
   useEffect(() => {
     refresh()
-    const id = setInterval(refresh, 5000) // poll every 5s (BRAINSTORM §4.5)
+    const id = setInterval(() => { if (!document.hidden) refresh() }, 5000)
     return () => clearInterval(id)
   }, [])
 
@@ -42,9 +49,12 @@ export default function TrackStatus() {
         title="My Requests"
         subtitle="Live status of your help requests"
         back={
-          <span className="flex items-center gap-1.5 text-[12px] font-medium text-slate-400">
-            <RefreshCw className="size-3.5" /> auto-refreshing
-          </span>
+          <button
+            onClick={manualRefresh}
+            className="flex items-center gap-1.5 text-[12px] font-medium text-slate-400 transition hover:text-slate-700"
+          >
+            <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} /> auto-refreshing · tap to reload
+          </button>
         }
       />
 
@@ -74,23 +84,39 @@ export default function TrackStatus() {
       )}
 
       {incidents?.map((inc) => {
-        const stepIdx = STATUS_STEPS.indexOf(inc.status)
+        // UNVERIFIED / AWAITING_ASSIGNMENT are working states outside the
+        // main stepper — pin them to the nearest visible step.
+        const stepIdx = STATUS_STEPS.indexOf(
+          inc.status === 'UNVERIFIED' ? 'NEW'
+          : inc.status === 'AWAITING_ASSIGNMENT' ? 'PRIORITIZED'
+          : inc.status
+        )
         return (
-          <Card key={inc.id} className="px-5 py-4">
+          <Card key={inc.id} className="rise px-5 py-4 shadow-[0_2px_12px_-6px_rgba(15,23,42,0.12)]">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[12px] font-medium text-slate-400">{inc.id}</span>
-              <Badge tone={inc.status === 'RESCUED' || inc.status === 'RESOLVED' ? 'emerald' : 'sky'}>
-                {STEP_LABELS[inc.status] || inc.status}
-              </Badge>
+              <span className="flex items-center gap-1.5">
+                {inc.priority?.score != null && inc.priority.score > 0 && (
+                  <Badge tone="amber">priority {inc.priority.score}</Badge>
+                )}
+                <Badge tone={inc.status === 'RESCUED' || inc.status === 'RESOLVED' ? 'emerald' : 'sky'}>
+                  {STEP_LABELS[inc.status] || inc.status}
+                </Badge>
+              </span>
             </div>
             <p className="mt-2.5 text-sm leading-snug text-slate-800">"{inc.raw_text}"</p>
+            {inc.location_verification === 'NEEDS_COORDINATOR_REVIEW' && (
+              <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+                Location needs confirmation — coordinators are verifying your landmark. Keep your phone on.
+              </p>
+            )}
 
             {/* Vertical stepper */}
             <div className="mt-4 space-y-0">
-              {STATUS_STEPS.slice(0, 6).map((s, i) => {
+              {STATUS_STEPS.slice(0, 7).map((s, i) => {
                 const done = i < stepIdx
                 const current = i === stepIdx
-                if (i > stepIdx && stepIdx >= 5) return null
+                if (i > stepIdx && stepIdx >= 6) return null
                 return (
                   <div key={s} className="flex gap-3">
                     <div className="flex flex-col items-center">
@@ -106,8 +132,8 @@ export default function TrackStatus() {
                         {done && <Check className="size-3 text-white" strokeWidth={3.5} />}
                         {current && <span className="size-2 rounded-full bg-red-600" />}
                       </span>
-                      {i < 5 && i < Math.max(stepIdx, 4) && (
-                        <span className={`h-5 w-0.5 ${i < stepIdx ? 'bg-sky-600' : 'bg-slate-200'}`} />
+                      {i < STATUS_STEPS.length - 1 && (
+                        <span className={`h-5 w-0.5 rounded-full ${i < stepIdx ? 'bg-gradient-to-b from-sky-500 to-sky-600' : 'bg-slate-200'}`} />
                       )}
                     </div>
                     <p

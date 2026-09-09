@@ -11,7 +11,7 @@ import {
 
 export function ColumnHeader({ column, title, className }) {
   if (!column.getCanSort()) {
-    return <div className={cn('font-mono text-[10px] uppercase font-bold text-zinc-400', className)}>{title}</div>
+    return <div className={cn('font-mono text-[10px] uppercase font-bold text-slate-500', className)}>{title}</div>
   }
 
   return (
@@ -21,7 +21,7 @@ export function ColumnHeader({ column, title, className }) {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8 data-[state=open]:bg-zinc-800 font-mono text-[10px] uppercase font-bold text-zinc-300 hover:text-white"
+            className="-ml-3 h-8 data-[state=open]:bg-slate-200 font-mono text-[10px] uppercase font-bold text-slate-600 hover:text-slate-900"
           >
             <span>{title}</span>
             {column.getIsSorted() === 'desc' ? (
@@ -29,20 +29,20 @@ export function ColumnHeader({ column, title, className }) {
             ) : column.getIsSorted() === 'asc' ? (
               <ArrowUp className="ml-2 size-3.5" />
             ) : (
-              <ChevronsUpDown className="ml-2 size-3.5 text-zinc-500" />
+              <ChevronsUpDown className="ml-2 size-3.5 text-slate-500" />
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="border-zinc-800 bg-[#09090b]">
+        <DropdownMenuContent align="start" className="border-slate-200 bg-slate-100">
           <DropdownMenuItem onClick={() => column.toggleSorting(false)} className="text-xs">
-            <ArrowUp className="mr-2 size-3.5 text-zinc-400" /> Ascending
+            <ArrowUp className="mr-2 size-3.5 text-slate-500" /> Ascending
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => column.toggleSorting(true)} className="text-xs">
-            <ArrowDown className="mr-2 size-3.5 text-zinc-400" /> Descending
+            <ArrowDown className="mr-2 size-3.5 text-slate-500" /> Descending
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => column.toggleVisibility(false)} className="text-xs">
-            <EyeOff className="mr-2 size-3.5 text-zinc-400" /> Hide Column
+            <EyeOff className="mr-2 size-3.5 text-slate-500" /> Hide Column
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

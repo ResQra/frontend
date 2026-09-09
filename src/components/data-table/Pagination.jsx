@@ -15,7 +15,7 @@ import {
 
 export function Pagination({ table }) {
   return (
-    <div className="flex items-center justify-between px-2 font-mono text-xs text-zinc-400">
+    <div className="flex items-center justify-between px-2 font-mono text-xs text-slate-500">
       <div className="flex-1 text-[11px]">
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} row(s) selected.
@@ -29,10 +29,10 @@ export function Pagination({ table }) {
               table.setPageSize(Number(value))
             }}
           >
-            <SelectTrigger className="h-8 w-[70px] border-zinc-800 bg-black text-xs">
+            <SelectTrigger className="h-8 w-[70px] border-slate-200 bg-slate-100 text-xs">
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
-            <SelectContent side="top" className="border-zinc-800 bg-[#09090b]">
+            <SelectContent side="top" className="border-slate-200 bg-slate-100">
               {[5, 10, 20, 50].map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
