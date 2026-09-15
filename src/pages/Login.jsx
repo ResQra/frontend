@@ -37,6 +37,13 @@ export default function Login() {
   const { user, setUser, signOut } = useAuth()
   const isDev = import.meta.env.DEV
 
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (user && user.role) {
+      navigate(user.role === 'coordinator' ? '/admin' : '/portal', { replace: true })
+    }
+  }, [user, navigate])
+
   useEffect(() => {
     if (resendIn <= 0) return
     const t = setTimeout(() => setResendIn((s) => s - 1), 1000)
@@ -58,6 +65,25 @@ export default function Login() {
       description: `Welcome back, ${userData.name || 'User'}!`,
     })
     navigate(userData.role === 'coordinator' ? '/admin' : '/portal', { replace: true })
+  }
+
+  async function instantLogin(targetRole) {
+    setBusy(true)
+    setError('')
+    try {
+      const res = await api.demoLogin(targetRole)
+      finish(res.token, {
+        id: res.user_id,
+        name: res.name || (targetRole === 'coordinator' ? 'Control Room' : 'Aman Aryan'),
+        phone: targetRole === 'resident' ? '9841234567' : '',
+        role: res.role || targetRole,
+      })
+    } catch (err) {
+      setError(err.message)
+      toast.error('Instant Login Failed', { description: err.message })
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function requestOtp(e) {
@@ -163,21 +189,21 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10 font-sans text-slate-800 selection:bg-slate-900 selection:text-white">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-4 sm:py-6 font-sans text-slate-800 selection:bg-slate-900 selection:text-white">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800" />
       <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-sky-500/20 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-red-600/20 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
       
       {/* Brand Header */}
-      <div className="rise relative mb-6 flex flex-col items-center text-center">
+      <div className="rise relative mb-3.5 flex flex-col items-center text-center">
         <div className="flex items-center gap-2.5">
-          <span className="brand-mark-sos grid size-11 place-items-center rounded-2xl font-mono text-sm font-black text-white shadow-lg">
+          <span className="brand-mark-sos grid size-10 place-items-center rounded-2xl font-mono text-sm font-black text-white shadow-lg">
             RQ
           </span>
-          <span className="font-mono text-2xl font-black tracking-widest text-white">RESQRA</span>
+          <span className="font-mono text-xl font-black tracking-widest text-white">RESQRA</span>
         </div>
-        <p className="mt-2 font-mono text-xs text-slate-400">
+        <p className="mt-1 font-mono text-[11px] text-slate-400">
           Autonomous Disaster Intelligence & Coordination Network
         </p>
       </div>
@@ -338,21 +364,38 @@ export default function Login() {
                 </span>
               </div>
 
-              {/* Dev mode code display with 1-tap fill */}
+              {/* Dev mode code display with 1-tap fill & verify */}
               {isDev && devCode && (
-                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-100 p-2.5 font-mono text-xs text-slate-600">
+                <div className="flex items-center justify-between rounded-lg border border-teal-500/40 bg-teal-50/50 p-2.5 font-mono text-xs text-teal-800">
                   <div className="flex items-center gap-2">
-                    <KeyRound className="size-4 text-slate-900" />
+                    <KeyRound className="size-4 text-teal-600" />
                     <span>
-                      Dev Code: <b className="text-slate-900 tracking-widest">{devCode}</b>
+                      Dev Code: <b className="text-teal-900 tracking-widest">{devCode}</b>
                     </span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setCode(devCode)}
-                    className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-200 border border-slate-200"
+                    disabled={busy}
+                    onClick={() => {
+                      setCode(devCode)
+                      const cleanPhone = phone.replace(/[^\d+]/g, '').trim()
+                      const cleanName = name.trim() || 'Resident'
+                      setBusy(true)
+                      api.verifyOtp(cleanPhone, devCode, cleanName)
+                        .then((res) =>
+                          finish(res.token, {
+                            id: res.user_id,
+                            name: res.name || cleanName,
+                            phone: cleanPhone,
+                            role: res.role || 'resident',
+                          })
+                        )
+                        .catch((err) => setError(err.message))
+                        .finally(() => setBusy(false))
+                    }}
+                    className="rounded bg-teal-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-teal-700 transition cursor-pointer shadow-xs disabled:opacity-50"
                   >
-                    Auto-Fill
+                    1-Tap Verify →
                   </button>
                 </div>
               )}
@@ -452,30 +495,61 @@ export default function Login() {
             </form>
           )}
 
-          {/* Quick Demo Credentials Bar (dev builds only) */}
+          {/* Quick Demo Credentials & 1-Click Instant Login (dev builds only) */}
           {isDev && (
-          <div className="mt-5 border-t border-slate-200/80 pt-4 space-y-2">
+          <div className="mt-5 border-t border-slate-200/80 pt-4 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase font-bold text-slate-500">
-                ⚡ Quick Demo Shortcuts
+              <span className="font-mono text-[10px] uppercase font-bold text-slate-500 flex items-center gap-1.5">
+                <Zap className="size-3 text-amber-500 fill-amber-500" /> 1-Click Fast Demo Login
+              </span>
+              <span className="text-[10px] text-emerald-600 font-mono font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                ⚡ INSTANT ACCESS
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={fillDemoResident}
-                className="rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 font-mono text-[11px] text-slate-600 hover:border-slate-400 hover:text-slate-900 transition text-left"
+                disabled={busy}
+                onClick={() => instantLogin('resident')}
+                className="group flex flex-col items-start rounded-lg border border-emerald-500/30 bg-emerald-50/40 p-2 hover:bg-emerald-100/60 hover:border-emerald-500 transition text-left cursor-pointer disabled:opacity-50"
               >
-                <span className="text-slate-500 block text-[9px]">RESIDENT</span>
-                9841234567
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-emerald-800 font-bold font-mono text-[10px]">CITIZEN / RESIDENT</span>
+                  <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 py-0.5 rounded">1-Click</span>
+                </div>
+                <span className="font-mono text-[11px] text-slate-700 font-semibold mt-1">Aman (9841234567)</span>
+                <span className="text-[9px] text-slate-500">Direct resident portal</span>
               </button>
               <button
                 type="button"
-                onClick={fillDemoAdmin}
-                className="rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 font-mono text-[11px] text-slate-600 hover:border-slate-400 hover:text-slate-900 transition text-left"
+                disabled={busy}
+                onClick={() => instantLogin('coordinator')}
+                className="group flex flex-col items-start rounded-lg border border-sky-500/30 bg-sky-50/40 p-2 hover:bg-sky-100/60 hover:border-sky-500 transition text-left cursor-pointer disabled:opacity-50"
               >
-                <span className="text-slate-500 block text-[9px]">COORDINATOR</span>
-                resqra-admin
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-sky-800 font-bold font-mono text-[10px]">OPS COORDINATOR</span>
+                  <span className="text-[9px] bg-sky-600 text-white font-bold px-1.5 py-0.5 rounded">1-Click</span>
+                </div>
+                <span className="font-mono text-[11px] text-slate-700 font-semibold mt-1">resqra-admin</span>
+                <span className="text-[9px] text-slate-500">Direct incident console</span>
+              </button>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-1 text-[10px] font-mono text-slate-400">
+              <span>Or autofill form:</span>
+              <button
+                type="button"
+                onClick={fillDemoResident}
+                className="underline hover:text-slate-700 transition cursor-pointer"
+              >
+                Resident Form
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={fillDemoAdmin}
+                className="underline hover:text-slate-700 transition cursor-pointer"
+              >
+                Official Form
               </button>
             </div>
           </div>

@@ -127,7 +127,16 @@ export default function AdminConsole() {
   // only the newest load may write, and never after unmount.
   const loadSeq = useRef(0)
   const mounted = useRef(true)
-  useEffect(() => () => { mounted.current = false }, [])
+  useEffect(() => {
+    mounted.current = true
+    const timer = setTimeout(() => {
+      if (mounted.current) setBooting(false)
+    }, 1500)
+    return () => {
+      mounted.current = false
+      clearTimeout(timer)
+    }
+  }, [])
   // Phase 2 chat sessions (lifted — view unmounts on switch)
   const [chatSessions, setChatSessions] = useState([])
   const [activeChatId, setActiveChatId] = useState(null)
@@ -160,46 +169,47 @@ export default function AdminConsole() {
   }, [areaConfig])
 
   async function load() {
-    // One slow/failed endpoint must never blank the whole console
-    // (action-board once hung on routing fan-out and hid every layer).
+    mounted.current = true
     const my = ++loadSeq.current
-    const [summaryRes, boardRes, mapRes, teamsRes, reportsRes] = await Promise.allSettled([
-      api.opsSummary(),
-      api.actionBoard(),
-      api.opsMapData(),
-      api.opsTeams(),
-      api.opsReports(),
-    ])
-    // A newer load (poll tick or WS burst) already won — drop this one.
-    // Never write state after unmount either.
-    if (!mounted.current || my !== loadSeq.current) return
     try {
-      if (summaryRes.status === 'fulfilled') setSummary(summaryRes.value)
-      if (boardRes.status === 'fulfilled') {
-        setBoard(boardRes.value.incidents || [])
-        setSelectedId((current) => {
+      const [summaryRes, boardRes, mapRes, teamsRes, reportsRes] = await Promise.allSettled([
+        api.opsSummary(),
+        api.actionBoard(),
+        api.opsMapData(),
+        api.opsTeams(),
+        api.opsReports(),
+      ])
+      if (!mounted.current) return
+      // Apply state from latest sequence
+      if (my === loadSeq.current) {
+        if (summaryRes.status === 'fulfilled' && summaryRes.value) setSummary(summaryRes.value)
+        if (boardRes.status === 'fulfilled' && boardRes.value) {
           const incidents = boardRes.value.incidents || []
-          return incidents.some((item) => item.id === current) ? current : incidents[0]?.id || null
-        })
-      }
-      if (mapRes.status === 'fulfilled') setMapData(mapRes.value)
-      if (teamsRes.status === 'fulfilled') setTeams(teamsRes.value.teams || [])
-      if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.reports || [])
-      const okCount = [summaryRes, boardRes, mapRes, teamsRes, reportsRes]
-        .filter((r) => r.status === 'fulfilled').length
-      // Honest sync stamp: only advance when at least one feed answered.
-      if (okCount > 0) {
-        setLastUpdate(Date.now())
-      } else {
-        toast.error('Ops feed unavailable', { description: 'All five feeds failed — check the backend.' })
-      }
-      for (const [name, res] of [['summary', summaryRes], ['board', boardRes], ['map', mapRes], ['teams', teamsRes], ['reports', reportsRes]]) {
-        if (res.status === 'rejected') console.error(`load:${name}`, res.reason?.message || res.reason)
+          setBoard(incidents)
+          setSelectedId((current) => {
+            return incidents.some((item) => item.id === current) ? current : incidents[0]?.id || null
+          })
+        }
+        if (mapRes.status === 'fulfilled' && mapRes.value) setMapData(mapRes.value)
+        if (teamsRes.status === 'fulfilled' && teamsRes.value) setTeams(teamsRes.value.teams || [])
+        if (reportsRes.status === 'fulfilled' && reportsRes.value) setReports(reportsRes.value.reports || [])
+        const okCount = [summaryRes, boardRes, mapRes, teamsRes, reportsRes]
+          .filter((r) => r.status === 'fulfilled').length
+        if (okCount > 0) {
+          setLastUpdate(Date.now())
+        } else {
+          toast.error('Ops feed unavailable', { description: 'All feeds failed — check the backend.' })
+        }
+        for (const [name, res] of [['summary', summaryRes], ['board', boardRes], ['map', mapRes], ['teams', teamsRes], ['reports', reportsRes]]) {
+          if (res.status === 'rejected') console.error(`load:${name}`, res.reason?.message || res.reason)
+        }
       }
     } catch (err) {
-      console.error(err)
+      console.error('Ops console load error:', err)
     } finally {
-      if (mounted.current) setBooting(false)
+      if (mounted.current && (my === loadSeq.current || booting)) {
+        setBooting(false)
+      }
     }
   }
 

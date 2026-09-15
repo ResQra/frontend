@@ -14,9 +14,11 @@ export function AuthProvider({ children }) {
         setUser(normalized)
         try { localStorage.setItem('resqra_user', JSON.stringify(normalized)) } catch { /* noop */ }
       })
-      .catch(() => {
-        clearSession()
-        setUser(null)
+      .catch((err) => {
+        if (err?.status === 401) {
+          clearSession()
+          setUser(null)
+        }
       })
   }, [])
 

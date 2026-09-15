@@ -28,15 +28,51 @@ export function getStoredUser() {
   }
 }
 
-async function request(path, { method = 'GET', body } = {}) {
+function errorMessage(detail, fallback) {
+  if (typeof detail === 'string' && detail.trim()) return detail
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => typeof item === 'string' ? item : item?.msg)
+      .filter(Boolean)
+    if (messages.length) return messages.join('; ')
+  }
+  if (detail && typeof detail === 'object') {
+    if (typeof detail.message === 'string') return detail.message
+    try {
+      return JSON.stringify(detail)
+    } catch {
+      return fallback
+    }
+  }
+  return fallback
+}
+
+async function request(path, { method = 'GET', body, timeoutMs = 8000 } = {}) {
   const headers = { 'Content-Type': 'application/json' }
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  let res
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    })
+  } catch (fetchErr) {
+    clearTimeout(timer)
+    if (fetchErr.name === 'AbortError') {
+      throw new Error('Connection timed out — server took too long to respond.')
+    }
+    throw fetchErr
+  } finally {
+    clearTimeout(timer)
+  }
+
   let data = null
   try {
     data = await res.json()
@@ -50,22 +86,39 @@ async function request(path, { method = 'GET', body } = {}) {
     throw new Error('Session expired — please sign in again')
   }
   if (!res.ok) {
-    const err = new Error(data?.detail || `Request failed (${res.status})`)
+    const err = new Error(errorMessage(data?.detail, `Request failed (${res.status})`))
     err.status = res.status
     throw err
   }
   return data
 }
 
-async function requestForm(path, formData) {
+async function requestForm(path, formData, { timeoutMs = 25000 } = {}) {
   const headers = {}
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  })
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  let res
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal: controller.signal,
+    })
+  } catch (fetchErr) {
+    clearTimeout(timer)
+    if (fetchErr.name === 'AbortError') {
+      throw new Error('Upload timed out — server took too long to respond.')
+    }
+    throw fetchErr
+  } finally {
+    clearTimeout(timer)
+  }
+
   let data = null
   try {
     data = await res.json()
@@ -78,7 +131,7 @@ async function requestForm(path, formData) {
     throw new Error('Session expired — please sign in again')
   }
   if (!res.ok) {
-    const err = new Error(data?.detail || `Request failed (${res.status})`)
+    const err = new Error(errorMessage(data?.detail, `Request failed (${res.status})`))
     err.status = res.status
     throw err
   }
@@ -92,12 +145,14 @@ export const api = {
     request('/api/auth/otp/verify', { method: 'POST', body: { phone, code, name } }),
   adminLogin: (username, password) =>
     request('/api/auth/admin/login', { method: 'POST', body: { username, password } }),
+  demoLogin: (role = 'resident') =>
+    request(`/api/auth/demo/login?role=${encodeURIComponent(role)}`, { method: 'POST' }),
   changePassword: (old_password, new_password) =>
     request('/api/auth/password', { method: 'PATCH', body: { old_password, new_password } }),
   changePhone: (new_phone) =>
     request('/api/auth/phone', { method: 'PATCH', body: { new_phone } }),
   me: () => request('/api/auth/me'),
-  chat: (message) => request('/api/chat', { method: 'POST', body: { message } }),
+  chat: (message) => request('/api/chat', { method: 'POST', body: { message }, timeoutMs: 30000 }),
   chatHistory: () => request('/api/chat/history'),
   createIncident: (body) => request('/api/incidents', { method: 'POST', body }),
   myIncidents: () => request('/api/incidents/mine'),
@@ -128,7 +183,7 @@ export const api = {
     request(`/api/ops/pending-actions/${id}/decision`, { method: 'POST', body }),
   activity: () => request('/api/ops/activity'),
   opsAssistant: (message, history = [], area_context = null, session_id = null) =>
-    request('/api/ops/assistant', { method: 'POST', body: { message, history, area_context, session_id } }),
+    request('/api/ops/assistant', { method: 'POST', body: { message, history, area_context, session_id }, timeoutMs: 45000 }),
   listChatSessions: () => request('/api/ops/assistant/sessions'),
   createChatSession: (body = {}) =>
     request('/api/ops/assistant/sessions', { method: 'POST', body }),
@@ -157,11 +212,11 @@ export const api = {
     request(`/api/ops/incidents/${id}/status`, { method: 'PATCH', body: { status } }),
   assignTeam: (id, teamId) =>
     request(`/api/ops/incidents/${id}/assign`, { method: 'POST', body: { team_id: teamId } }),
-  recommendTeam: (id) => request(`/api/ops/incidents/${id}/recommend`, { method: 'POST' }),
+  recommendTeam: (id) => request(`/api/ops/incidents/${id}/recommend`, { method: 'POST', timeoutMs: 45000 }),
   routePreview: (incidentId, teamId) =>
     request(`/api/agents/route-preview?incident_id=${encodeURIComponent(incidentId)}${teamId ? `&team_id=${encodeURIComponent(teamId)}` : ''}`),
   debate: (incidentId) =>
-    request('/api/agents/debate', { method: 'POST', body: { incident_id: incidentId } }),
+    request('/api/agents/debate', { method: 'POST', body: { incident_id: incidentId }, timeoutMs: 60000 }),
   setTeamStatus: (id, status) =>
     request(`/api/ops/teams/${id}/status`, { method: 'PATCH', body: { status } }),
   updateTeamLocation: (id, body) =>
